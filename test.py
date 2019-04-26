@@ -5,6 +5,7 @@ import os
 import torchvision.transforms.functional as tvF
 from model.unet import UNet
 from model.srresnet import SRResnet
+from model.eesp.eesp_segmentation import EESPNet_Seg
 import time
 from dataset import Training_Dataset
 from torch.utils.data import Dataset, DataLoader
@@ -22,12 +23,11 @@ parser.add_argument("--image_size", type=int, default=256,help="training patch s
 parser.add_argument("--batch_size", type=int, default=1, help="batch size")
 parser.add_argument("--image_channels", type=int, default=3,help="batch image_channels")
 parser.add_argument("--devices", type=str, default="cuda:0",help="device description")
-parser.add_argument("--output_path", type=str, default="../checkpoints",help="checkpoint dir")
-parser.add_argument("--model_name", type=str, default="denoise_epoch_25.pth",help="load model name")
 parser.add_argument("--denoised_dir", type=str, default="output",help="load model name")
+parser.add_argument("--resume_model", type=str, default=None, required=True, help="resume model path")
 
 # model parameters
-parser.add_argument("--model", choices=['unet','srresnet'],type=str, default="unet", help="which model to train")
+parser.add_argument("--model", choices=['unet','srresnet','eesp'],type=str, default="unet", help="which model to train")
 
 # Noise parameters
 parser.add_argument("--noise", choices=['Gaussain','Text','Multiplicative_bernoulli'],type=str, default="Gaussain", help="noise type")
@@ -43,27 +43,36 @@ def transpose(img,cpu=True):
         npimg = torch.squeeze(img).numpy()
     return np.transpose(npimg,(1,2,0))
 
+def resume_model(model, model_path):
+    print("Resume model from {}".format(args.resume_model))
+    model.load_state_dict(torch.load(model_path))
+
 def test():
     device = torch.device(args.devices if torch.cuda.is_available() else "cpu")
     test_dataset = Training_Dataset(args.test_dir, (args.image_size,args.image_size),(args.noise, args.noise_param))
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-    model_path = os.path.join(args.output_path, args.model_name)
-    print('Loading model from: {}'.format(model_path))
-
+    
     # choose the model
     if args.model == "unet":
         model = UNet(in_channels=args.image_channels, out_channels=args.image_channels)
     elif args.model == "srresnet":
         model = SRResnet(args.image_channels, args.image_channels)
+    elif args.model == "eesp":
+        model = EESPNet_Seg(args.image_channels, 2)
     else:
         model = UNet(in_channels=args.image_channels, out_channels=args.image_channels)
     print('loading model')
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
-    model.to(device)
-    result_dir = args.denoised_dir
-    if not os.path.exists(result_dir):
-        os.mkdir(result_dir)
+    # model.load_state_dict(torch.load(model_path))
+    # model.eval()
+    # model.to(device)
+    if args.resume_model:
+        resume_model(model, args.resume_model)
+        model.eval()
+        model.to(device)
+
+    # result_dir = args.denoised_dir
+    # if not os.path.exists(result_dir):
+    #     os.mkdir(result_dir)
 
     for batch_idx, (target, source) in enumerate(test_loader):
         #PIL_ShowTensor(torch.squeeze(source))
