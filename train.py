@@ -8,6 +8,7 @@ from model.srresnet import SRResnet
 from model.eesp.eesp_segmentation import EESPNet_Seg
 import time
 from dataset import Training_Dataset
+from hongzhang_dataset import HongZhang_Dataset
 from torch.utils.data import Dataset, DataLoader
 from torch.autograd import Variable
 import argparse
@@ -63,7 +64,8 @@ def resume_model(model, model_path):
 def train():
     # prepare the dataloader
     device = torch.device(args.devices if torch.cuda.is_available() else "cpu")
-    dataset = Training_Dataset(args.image_dir, (args.image_size, args.image_size), (args.noise,args.noise_param))
+    #dataset = Training_Dataset(args.image_dir, (args.image_size, args.image_size), (args.noise,args.noise_param))
+    dataset = HongZhang_Dataset("/data_1/data/Noise2Noise/shenqingbiao/0202", "/data_1/data/Noise2Noise/hongzhang")
     dataset_length = len(dataset)
     train_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
 
