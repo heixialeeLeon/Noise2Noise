@@ -9,7 +9,7 @@ from model.eesp.eesp_segmentation import EESPNet_Seg
 import time
 from dataset import Training_Dataset
 from hongzhang_dataset import HongZhang_Dataset
-from dataset2 import HongZhang_Dataset2
+from dataset2 import HongZhang_Dataset2,HongZhang_TestDataset, HongZhang_Dataset3
 from torch.utils.data import Dataset, DataLoader
 # from noise2noise_leon.Config import Config as conf
 from transform.image_show import *
@@ -53,7 +53,7 @@ def test():
     device = torch.device(args.devices if torch.cuda.is_available() else "cpu")
     #test_dataset = Training_Dataset(args.test_dir, (args.image_size,args.image_size),(args.noise, args.noise_param))
     # test_dataset = HongZhang_Dataset("/data_1/data/Noise2Noise/shenqingbiao/0202", "/data_1/data/Noise2Noise/hongzhang")
-    test_dataset = HongZhang_Dataset2("/data_1/data/红章图片", (256, 256))
+    test_dataset = HongZhang_TestDataset("/data_1/data/红章图片/test/hongzhang", (256, 256))
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     # choose the model
@@ -78,12 +78,12 @@ def test():
     # if not os.path.exists(result_dir):
     #     os.mkdir(result_dir)
 
-    for batch_idx, (target, source) in enumerate(test_loader):
+    for batch_idx, image in enumerate(test_loader):
         #PIL_ShowTensor(torch.squeeze(source))
         #PIL_ShowTensor2(torch.squeeze(source),torch.squeeze(noise))
-        source = source.to(device)
-        denoised_img = model(source).detach().cpu()
-        CV2_showTensors(source.cpu(), target, denoised_img,timeout=3000)
+        image = image.to(device)
+        denoised_img = model(image).detach().cpu()
+        CV2_showTensors(image.cpu(),denoised_img,timeout=5000)
 
         # out_img = torch.squeeze(denoised_img).data.cpu().numpy().transpose(1, 2, 0)
         # out_img = cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR)

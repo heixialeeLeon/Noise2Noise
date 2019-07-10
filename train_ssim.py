@@ -39,7 +39,7 @@ parser.add_argument("--resume_model", type=str, default=None, help="resume model
 parser.add_argument("--model", choices=['unet','srresnet','eesp'],type=str, default="unet", help="which model to train")
 
 # Loss parameters
-parser.add_argument("--loss", choices=['l1','l2','ssim'],type=str, default="l1", help="loss type")
+# parser.add_argument("--loss", choices=['l1','l2','ssim'],type=str, default="l1", help="loss type")
 
 # Noise parameters
 parser.add_argument("--noise", choices=['Gaussain','Text','Multiplicative_bernoulli'],type=str, default="Gaussain", help="noise type")
@@ -85,12 +85,8 @@ def train():
     model = model.to(device)
 
     # choose the loss type
-    if args.loss == "l2":
-        criterion = nn.MSELoss()
-    elif args.loss == "l1":
-        criterion = nn.L1Loss()
-    elif args.loss == "ssim":
-        criterion = SSIM()
+    criterion_l1 = nn.L1Loss()
+    criterion_ssim = SSIM()
 
     # resume the mode if needed
     if args.resume_model:
@@ -114,10 +110,10 @@ def train():
             source = source.to(device)
             target = target.to(device)
             denoised_source = model(source)
-            if args.loss == "ssim":
-                loss = 1 - criterion(denoised_source, Variable(target))
-            else:
-                loss = criterion(denoised_source, Variable(target))
+
+            loss_l1 = criterion_l1(denoised_source, Variable(target))
+            loss_ssim = 1 - criterion_ssim(denoised_source, Variable(target))
+            loss = 0.5*loss_l1 + 0.5*loss_ssim
             optim.zero_grad()
             loss.backward()
             optim.step()
